@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/QuantumNous/new-api/common"
+	"github.com/QuantumNous/new-api/constant"
 	"github.com/QuantumNous/new-api/logger"
 	"github.com/QuantumNous/new-api/types"
 
@@ -117,6 +118,13 @@ func formatUserLogs(logs []*Log, startIdx int) {
 	for i := range logs {
 		logs[i].ChannelName = ""
 		logs[i].Other = formatLogOtherJSON(logs[i].Other, logOtherVisibilityUser)
+		if constant.UpstreamPrivacyEnabled {
+			logs[i].ChannelId = 0
+			logs[i].UpstreamRequestId = ""
+			if logs[i].Type == LogTypeError {
+				logs[i].Content = common.PrivateUpstreamLogContent(logs[i].Content)
+			}
+		}
 	}
 	assignDisplayLogIds(logs, startIdx)
 }

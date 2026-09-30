@@ -1,7 +1,10 @@
 package service
 
 import (
+	"errors"
 	"fmt"
+	"net/http"
+	"slices"
 	"time"
 
 	"github.com/QuantumNous/new-api/common"
@@ -15,6 +18,44 @@ import (
 	"github.com/bytedance/gopkg/util/gopool"
 	"github.com/gin-gonic/gin"
 )
+
+// localClientErrorCodes are produced by the gateway itself and tell the caller
+// how to fix the request, so upstream privacy returns them unchanged.
+var localClientErrorCodes = []types.ErrorCode{
+	types.ErrorCodeInvalidRequest,
+	types.ErrorCodeSensitiveWordsDetected,
+	types.ErrorCodeViolationFeeGrokCSAM,
+	types.ErrorCodeCountTokenFailed,
+	types.ErrorCodeModelPriceError,
+	types.ErrorCodeGetChannelFailed,
+	types.ErrorCodeReadRequestBodyFailed,
+	types.ErrorCodeConvertRequestFailed,
+	types.ErrorCodeAccessDenied,
+	types.ErrorCodeBadRequestBody,
+	types.ErrorCodeInsufficientUserQuota,
+	types.ErrorCodePreConsumeTokenQuotaFailed,
+}
+
+// PrivatizeUpstreamError returns the error shown to the API caller. With
+// upstream privacy enabled, upstream failures are replaced by a gateway error
+// that carries no upstream message, type, code or request id; the original
+// error must be logged before calling this.
+func PrivatizeUpstreamError(err *types.NewAPIError) *types.NewAPIError {
+	if !constant.UpstreamPrivacyEnabled || err == nil || slices.Contains(localClientErrorCodes, err.GetErrorCode()) {
+		return err
+	}
+	statusCode, message := common.PrivateUpstreamFailure(err.StatusCode, err.ToOpenAIError().Message)
+	code := types.ErrorCode("service_unavailable")
+	switch {
+	case statusCode == http.StatusTooManyRequests:
+		code = "rate_limit_exceeded"
+	case statusCode == http.StatusForbidden:
+		code = "request_rejected"
+	case statusCode < http.StatusInternalServerError:
+		code = types.ErrorCodeInvalidRequest
+	}
+	return types.NewErrorWithStatusCode(errors.New(message), code, statusCode, types.ErrOptionWithSkipRetry())
+}
 
 // DecideRelayRetry is the single retry decision for relay attempts. The reason
 // is recorded in the request policy decision events of the log details.

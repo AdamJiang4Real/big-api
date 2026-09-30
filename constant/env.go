@@ -16,6 +16,10 @@ var NotifyLimitCount int
 var NotificationLimitDurationMinute int
 var GenerateDefaultToken bool
 var ErrorLogEnabled bool
+
+// UpstreamPrivacyEnabled hides which upstream provider served a request from
+// API callers (response headers, error messages, user log fields).
+var UpstreamPrivacyEnabled bool
 var TaskQueryLimit int
 var TaskTimeoutMinutes int
 var TaskPollMaxFailures = 20

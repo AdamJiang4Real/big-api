@@ -5,9 +5,11 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"slices"
 	"strings"
 
 	"github.com/QuantumNous/new-api/common"
+	"github.com/QuantumNous/new-api/constant"
 	"github.com/QuantumNous/new-api/logger"
 
 	"github.com/gin-gonic/gin"
@@ -23,11 +25,20 @@ func CloseResponseBodyGracefully(httpResponse *http.Response) {
 	}
 }
 
+// privacySafeUpstreamHeaders are the only upstream response headers forwarded
+// under upstream privacy. Others (server, tracing, gateway version and relay
+// request-id headers) can identify the provider. The Codex headers keep Codex
+// CLI turn state and reasoning handling working through the gateway.
+var privacySafeUpstreamHeaders = []string{
+	"Content-Type", "Content-Disposition", "Retry-After", "X-Reasoning-Included", "X-Codex-Turn-State",
+}
+
 // ShouldCopyUpstreamHeader checks whether a given upstream response header
 // should be copied to the client response. It returns false for Content-Length
 // (managed separately) and X-Oneapi-Request-Id (to preserve the local instance
 // ID). When the upstream header is X-Oneapi-Request-Id, the value is captured
-// into the Gin context for later logging.
+// into the Gin context for later logging. Under upstream privacy only
+// privacySafeUpstreamHeaders are copied.
 func ShouldCopyUpstreamHeader(c *gin.Context, k string, v []string) bool {
 	if strings.EqualFold(k, "Content-Length") {
 		return false
@@ -37,6 +48,9 @@ func ShouldCopyUpstreamHeader(c *gin.Context, k string, v []string) bool {
 			c.Set(common.UpstreamRequestIdKey, v[0])
 		}
 		return false
+	}
+	if constant.UpstreamPrivacyEnabled {
+		return slices.Contains(privacySafeUpstreamHeaders, http.CanonicalHeaderKey(k))
 	}
 	return true
 }

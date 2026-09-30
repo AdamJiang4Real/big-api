@@ -4,10 +4,34 @@ import (
 	"testing"
 
 	"github.com/QuantumNous/new-api/common"
+	"github.com/QuantumNous/new-api/constant"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func TestFormatUserLogsHidesUpstreamUnderUpstreamPrivacy(t *testing.T) {
+	previous := constant.UpstreamPrivacyEnabled
+	constant.UpstreamPrivacyEnabled = true
+	t.Cleanup(func() { constant.UpstreamPrivacyEnabled = previous })
+
+	logs := []*Log{
+		{Type: LogTypeConsume, ChannelId: 4, ChannelName: "SuperAPI-ProAdvanced-0.30", UpstreamRequestId: "202609300318350541318438268d9d6aJofGDbd", Content: "ok"},
+		{Type: LogTypeError, ChannelId: 6, Content: "status_code=401, Invalid token (request id: 2026093003183505)"},
+		{Type: LogTypeError, ChannelId: 1, Content: "status_code=400, maximum context length exceeded (request id: abc123)"},
+	}
+
+	formatUserLogs(logs, 0)
+
+	for _, log := range logs {
+		assert.Zero(t, log.ChannelId)
+		assert.Empty(t, log.ChannelName)
+		assert.Empty(t, log.UpstreamRequestId)
+	}
+	assert.Equal(t, "ok", logs[0].Content)
+	assert.Equal(t, "status_code=503, 服务暂时繁忙，请稍后重试 / Service temporarily unavailable, please retry later", logs[1].Content)
+	assert.Equal(t, "status_code=400, maximum context length exceeded", logs[2].Content)
+}
 
 // TestFormatUserLogsStripsQuotaSaturation verifies the admin-only quota
 // saturation marker (nested under other.admin_info) is removed for non-admin
