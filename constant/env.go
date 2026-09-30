@@ -20,6 +20,10 @@ var ErrorLogEnabled bool
 // UpstreamPrivacyEnabled hides which upstream provider served a request from
 // API callers (response headers, error messages, user log fields).
 var UpstreamPrivacyEnabled bool
+
+// DefaultUserGroup is assigned to newly registered users that have no group;
+// empty keeps the database default ("default").
+var DefaultUserGroup string
 var TaskQueryLimit int
 var TaskTimeoutMinutes int
 var TaskPollMaxFailures = 20

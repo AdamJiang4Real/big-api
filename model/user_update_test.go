@@ -2,9 +2,11 @@ package model
 
 import (
 	"errors"
+	"fmt"
 	"testing"
 
 	"github.com/QuantumNous/new-api/common"
+	"github.com/QuantumNous/new-api/constant"
 	"github.com/QuantumNous/new-api/relaykit/dto"
 
 	"github.com/stretchr/testify/assert"
@@ -286,6 +288,47 @@ func TestInsertKeepsBlankPasswordForPasswordlessUser(t *testing.T) {
 	var stored User
 	require.NoError(t, DB.Where("username = ?", user.Username).First(&stored).Error)
 	assert.Empty(t, stored.Password)
+}
+
+func TestInsertAssignsConfiguredDefaultUserGroup(t *testing.T) {
+	setupUserUpdateTestState(t)
+	previous := constant.DefaultUserGroup
+	t.Cleanup(func() { constant.DefaultUserGroup = previous })
+
+	tests := []struct {
+		name         string
+		defaultGroup string
+		group        string
+		password     string
+		viaTx        bool
+		wantGroup    string
+	}{
+		{name: "password registration gets configured group", defaultGroup: "GPT-Pro通道", password: "password-123", wantGroup: "GPT-Pro通道"},
+		{name: "oauth registration gets configured group", defaultGroup: "GPT-Pro通道", viaTx: true, wantGroup: "GPT-Pro通道"},
+		{name: "explicit group is kept", defaultGroup: "GPT-Pro通道", group: "vip", password: "password-123", wantGroup: "vip"},
+		{name: "unset keeps database default", defaultGroup: "", password: "password-123", wantGroup: "default"},
+	}
+	for i, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			constant.DefaultUserGroup = tt.defaultGroup
+			user := &User{
+				Username: fmt.Sprintf("group-user-%d", i),
+				Password: tt.password,
+				Group:    tt.group,
+				Role:     common.RoleCommonUser,
+				Status:   common.UserStatusEnabled,
+			}
+			if tt.viaTx {
+				require.NoError(t, DB.Transaction(func(tx *gorm.DB) error { return user.InsertWithTx(tx, 0) }))
+			} else {
+				require.NoError(t, user.Insert(0))
+			}
+
+			var stored User
+			require.NoError(t, DB.Where("username = ?", user.Username).First(&stored).Error)
+			assert.Equal(t, tt.wantGroup, stored.Group)
+		})
+	}
 }
 
 func TestUpdateUserBindColumnOnlyTouchesTheBindingColumn(t *testing.T) {

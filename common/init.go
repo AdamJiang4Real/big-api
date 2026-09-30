@@ -199,6 +199,8 @@ func initConstantEnv() {
 	constant.ErrorLogEnabled = GetEnvOrDefaultBool("ERROR_LOG_ENABLED", false)
 	// 对调用方隐藏上游信息（响应头、错误原文、用户日志中的渠道与上游请求 ID）
 	constant.UpstreamPrivacyEnabled = GetEnvOrDefaultBool("UPSTREAM_PRIVACY_ENABLED", false)
+	// 新注册用户的默认分组，留空则沿用数据库默认值 default
+	constant.DefaultUserGroup = strings.TrimSpace(GetEnvOrDefaultString("DEFAULT_USER_GROUP", ""))
 	// 任务轮询时查询的最大数量
 	constant.TaskQueryLimit = GetEnvOrDefault("TASK_QUERY_LIMIT", 1000)
 	// 异步任务超时时间（分钟），超过此时间未完成的任务将被标记为失败并退款。0 表示禁用。
