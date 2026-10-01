@@ -35,6 +35,9 @@ export const registerFormSchema = z
     email: z.string().optional(),
     password: accountPasswordSchema,
     confirmPassword: z.string().min(1, 'Please confirm your password'),
+    // Required only when the site enables invite-only registration; the form
+    // checks it on submit because the requirement comes from server status.
+    inviteCode: z.string().optional(),
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: "Passwords don't match.",

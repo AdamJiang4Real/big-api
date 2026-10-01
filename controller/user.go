@@ -19,6 +19,7 @@ import (
 	"github.com/QuantumNous/new-api/service/authz"
 	"github.com/QuantumNous/new-api/setting"
 	"github.com/QuantumNous/new-api/setting/operation_setting"
+	"github.com/QuantumNous/new-api/setting/system_setting"
 
 	"github.com/QuantumNous/new-api/constant"
 
@@ -239,6 +240,11 @@ func Register(c *gin.Context) {
 		common.ApiErrorI18n(c, i18n.MsgUserInputInvalid, map[string]any{"Error": err.Error()})
 		return
 	}
+	inviteRequired := system_setting.GetInviteCodeSettings().RegisterEnabled
+	if inviteRequired && strings.TrimSpace(user.InviteCode) == "" {
+		common.ApiErrorI18n(c, i18n.MsgUserInviteCodeRequired)
+		return
+	}
 	if common.EmailVerificationEnabled {
 		if user.Email == "" || user.VerificationCode == "" {
 			common.ApiErrorI18n(c, i18n.MsgUserEmailVerificationRequired)
@@ -283,7 +289,27 @@ func Register(c *gin.Context) {
 	if common.EmailVerificationEnabled {
 		cleanUser.Email = user.Email
 	}
-	if err := cleanUser.Insert(inviterId); err != nil {
+	if inviteRequired {
+		// The account and the code consumption commit together, so a rejected
+		// code leaves no account behind and a code can only create one account.
+		err = model.DB.Transaction(func(tx *gorm.DB) error {
+			if err := cleanUser.InsertWithTx(tx, inviterId); err != nil {
+				return err
+			}
+			return model.ConsumeInviteCodeTx(tx, user.InviteCode, cleanUser.Id)
+		})
+		if err == nil {
+			cleanUser.FinishInsert(inviterId)
+		}
+	} else {
+		err = cleanUser.Insert(inviterId)
+	}
+	if err != nil {
+		if errors.Is(err, model.ErrInviteCodeInvalid) {
+			logger.LogWarn(c.Request.Context(), fmt.Sprintf("registration rejected: invalid invite code, username=%q client_ip=%s", user.Username, c.ClientIP()))
+			common.ApiErrorI18n(c, i18n.MsgUserInviteCodeInvalid)
+			return
+		}
 		if errors.Is(err, model.ErrEmailAlreadyTaken) {
 			common.ApiErrorI18n(c, i18n.MsgUserEmailAlreadyTaken)
 			return

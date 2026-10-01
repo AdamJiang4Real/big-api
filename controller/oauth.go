@@ -16,6 +16,7 @@ import (
 	"github.com/QuantumNous/new-api/model"
 	"github.com/QuantumNous/new-api/oauth"
 	"github.com/QuantumNous/new-api/service"
+	"github.com/QuantumNous/new-api/setting/system_setting"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
@@ -485,8 +486,9 @@ func findOrCreateOAuthUser(c *gin.Context, provider oauth.Provider, oauthUser *o
 		}
 	}
 
-	// User doesn't exist, create new user if registration is enabled
-	if !common.RegisterEnabled {
+	// User doesn't exist, create new user if registration is enabled. Invite-only
+	// registration has no invite code on this path, so it cannot create users.
+	if !common.RegisterEnabled || system_setting.GetInviteCodeSettings().RegisterEnabled {
 		return nil, nil, &OAuthRegistrationDisabledError{}
 	}
 

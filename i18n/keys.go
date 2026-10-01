@@ -91,6 +91,8 @@ const (
 	MsgUserRequire2FA                = "user.require_2fa"
 	MsgUserEmailVerificationRequired = "user.email_verification_required"
 	MsgUserVerificationCodeError     = "user.verification_code_error"
+	MsgUserInviteCodeRequired        = "user.invite_code_required"
+	MsgUserInviteCodeInvalid         = "user.invite_code_invalid"
 	MsgUserEmailAlreadyTaken         = "user.email_already_taken"
 	MsgUserPasswordUnset             = "user.password_unset"
 	MsgUserPasswordResetLinkInvalid  = "user.password_reset_link_invalid"

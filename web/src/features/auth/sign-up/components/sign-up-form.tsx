@@ -31,6 +31,7 @@ import { Button } from '@/components/ui/button'
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -95,10 +96,17 @@ export function SignUpForm({
       email: '',
       password: '',
       confirmPassword: '',
+      // Invite links from the bot carry the code as ?invite_code=...
+      inviteCode:
+        new URLSearchParams(window.location.search)
+          .get('invite_code')
+          ?.trim() ?? '',
     },
   })
 
   const emailValue = form.watch('email')
+  const inviteCodeRequired = Boolean(status?.invite_code_register_enabled)
+  const inviteCodeHint = status?.invite_code_register_hint?.trim()
   const emailVerificationRequired = !!status?.email_verification
   const hasUserAgreement = Boolean(status?.user_agreement_enabled)
   const hasPrivacyPolicy = Boolean(status?.privacy_policy_enabled)
@@ -145,6 +153,14 @@ export function SignUpForm({
       return
     }
 
+    const inviteCode = data.inviteCode?.trim() ?? ''
+    if (inviteCodeRequired && !inviteCode) {
+      form.setError('inviteCode', {
+        message: t('Please enter the invite code'),
+      })
+      return
+    }
+
     // Validate email verification if required
     if (emailVerificationRequired) {
       if (!data.email) {
@@ -167,6 +183,7 @@ export function SignUpForm({
         email: data.email || undefined,
         verification_code: verificationCode || undefined,
         aff_code: getAffiliateCode(),
+        invite_code: inviteCodeRequired ? inviteCode : undefined,
         turnstile: turnstileToken,
       })
 
@@ -251,6 +268,30 @@ export function SignUpForm({
         className={cn('grid gap-4', className)}
         {...props}
       >
+        {/* Invite Code Field (invite-only registration) */}
+        {inviteCodeRequired && (
+          <FormField
+            control={form.control}
+            name='inviteCode'
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>{t('Invite code')}</FormLabel>
+                <FormControl>
+                  <Input
+                    placeholder={t('Enter your invite code')}
+                    autoComplete='off'
+                    {...field}
+                  />
+                </FormControl>
+                {inviteCodeHint ? (
+                  <FormDescription>{inviteCodeHint}</FormDescription>
+                ) : null}
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
+
         {/* Username Field */}
         <FormField
           control={form.control}
@@ -382,7 +423,9 @@ export function SignUpForm({
           {t('Create account')}
         </Button>
 
-        {oauthRegisterEnabled && (
+        {/* Third-party sign-up cannot carry an invite code, and the server
+            refuses to create accounts that way while invites are required. */}
+        {oauthRegisterEnabled && !inviteCodeRequired && (
           <OAuthProviders
             status={status}
             disabled={isLoading || (requiresLegalConsent && !agreedToLegal)}

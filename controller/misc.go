@@ -95,6 +95,9 @@ func GetStatus(c *gin.Context) {
 		"password_register_enabled":     common.PasswordRegisterEnabled,
 		"default_use_auto_group":        setting.DefaultUseAutoGroup,
 
+		"invite_code_register_enabled": system_setting.GetInviteCodeSettings().RegisterEnabled,
+		"invite_code_register_hint":    system_setting.GetInviteCodeSettings().RegisterHint,
+
 		"password_login_encryption_enabled": common.PasswordLoginEncryptionEnabled,
 
 		"usd_exchange_rate": operation_setting.USDExchangeRate,
