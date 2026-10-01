@@ -24,6 +24,11 @@ var UpstreamPrivacyEnabled bool
 // DefaultUserGroup is assigned to newly registered users that have no group;
 // empty keeps the database default ("default").
 var DefaultUserGroup string
+
+// EpayTopUpNamePrefix starts the product name sent to the epay gateway for
+// balance top-ups (followed by the amount). Some gateways reject or ban
+// merchants whose product names do not describe the goods.
+var EpayTopUpNamePrefix = "TUC"
 var TaskQueryLimit int
 var TaskTimeoutMinutes int
 var TaskPollMaxFailures = 20

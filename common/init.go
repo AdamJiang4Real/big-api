@@ -201,6 +201,8 @@ func initConstantEnv() {
 	constant.UpstreamPrivacyEnabled = GetEnvOrDefaultBool("UPSTREAM_PRIVACY_ENABLED", false)
 	// 新注册用户的默认分组，留空则沿用数据库默认值 default
 	constant.DefaultUserGroup = strings.TrimSpace(GetEnvOrDefaultString("DEFAULT_USER_GROUP", ""))
+	// 易支付充值订单的商品名前缀，后接充值数量，如"BigAPI账户充值10"
+	constant.EpayTopUpNamePrefix = GetEnvOrDefaultString("EPAY_TOPUP_NAME_PREFIX", constant.EpayTopUpNamePrefix)
 	// 任务轮询时查询的最大数量
 	constant.TaskQueryLimit = GetEnvOrDefault("TASK_QUERY_LIMIT", 1000)
 	// 异步任务超时时间（分钟），超过此时间未完成的任务将被标记为失败并退款。0 表示禁用。
