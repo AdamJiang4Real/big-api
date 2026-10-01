@@ -190,7 +190,7 @@ func TestIssueInviteCodeByBot(t *testing.T) {
 	require.Equal(t, http.StatusOK, status)
 	require.True(t, first.Success, first.Message)
 	code, _ := first.Data["code"].(string)
-	require.Len(t, code, 12)
+	require.Len(t, code, 8)
 	assert.Equal(t, strings.ToUpper(code), code)
 	assert.Equal(t, "https://bigapi.example/sign-up?invite_code="+code, first.Data["invite_link"])
 

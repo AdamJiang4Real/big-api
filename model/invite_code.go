@@ -10,7 +10,7 @@ import (
 	"gorm.io/gorm"
 )
 
-const inviteCodeLength = 12
+const inviteCodeLength = 8
 
 var (
 	// ErrInviteCodeInvalid covers unknown, expired and already used codes alike
